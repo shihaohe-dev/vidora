@@ -2,5 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /admin
 
-# Ganti domain-anda.com dengan domain asli
-Sitemap: https://vidora-9ns.pages.dev/admin/sitemap.xml
+Sitemap: https://vidora-9ns.pages.dev/sitemap.xml
