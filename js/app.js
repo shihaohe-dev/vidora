@@ -6,12 +6,25 @@ export const slugify = t => String(t).toLowerCase().normalize('NFKD').replace(/[
 export const videoPath = v => `/v/${slugify(v.title)}-${v.id}`;
 export const PH = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 9'%3E%3Crect width='16' height='9' fill='%2320232e'/%3E%3C/svg%3E";
 
+const isDirect = v => v.source_type === 'direct' && /^https?:\/\//i.test(v.video_url || '');
+// Gambar thumbnail: URL manual bila ada; kalau tidak, frame langsung dari video (tanpa menyimpan gambar apa pun).
+export function thumbMedia(v) {
+  if (v.thumbnail_url || !isDirect(v)) return `<img src="${esc(v.thumbnail_url || PH)}" alt="${esc(v.title)}" loading="lazy">`;
+  const t = v.thumb_time > 0 ? v.thumb_time : 1;
+  return `<video data-src="${esc(v.video_url)}#t=${t}" preload="metadata" muted playsinline tabindex="-1" aria-label="${esc(v.title)}" style="width:100%;height:100%;object-fit:cover;pointer-events:none"></video>`;
+}
+// Video baru dimuat saat mendekati layar, supaya halaman dengan banyak kartu tetap ringan.
+export function lazyVideos(root = document) {
+  const vs = root.querySelectorAll('video[data-src]'); if (!vs.length) return;
+  const load = v => { v.src = v.dataset.src; v.removeAttribute('data-src'); };
+  if (!('IntersectionObserver' in window)) return vs.forEach(load);
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { io.unobserve(e.target); load(e.target); } }), { rootMargin: '200px' });
+  vs.forEach(v => io.observe(v));
+}
+
 export function card(v) {
   const c = v.site_categories;
-  const media = v.thumbnail_url || !(v.source_type === 'direct' && /^https?:\/\//i.test(v.video_url || ''))
-    ? `<img src="${esc(v.thumbnail_url || PH)}" alt="${esc(v.title)}" loading="lazy">`
-    : `<video src="${esc(v.video_url)}#t=1" preload="metadata" muted playsinline tabindex="-1" aria-label="${esc(v.title)}" style="width:100%;height:100%;object-fit:cover;pointer-events:none"></video>`;
-  return `<a class="card" href="${videoPath(v)}"><div class="thumb">${media}</div>` +
+  return `<a class="card" href="${videoPath(v)}"><div class="thumb">${thumbMedia(v)}</div>` +
     `<h3>${esc(v.title)}</h3><p>${c ? esc(c.name) + ' · ' : ''}${(v.views || 0).toLocaleString('id-ID')}x ditonton</p></a>`;
 }
 

@@ -1,4 +1,4 @@
-import { supabase, $, esc, card, layout, SITE, PAGE_SIZE } from './app.js';
+import { supabase, $, esc, card, lazyVideos, layout, SITE, PAGE_SIZE } from './app.js';
 layout();
 const P = new URLSearchParams(location.search);
 const S = { q: (P.get('q') || '').trim().slice(0, 80), c: P.get('c') || '', s: P.get('s') === 'popular' ? 'popular' : 'latest', p: Math.max(1, parseInt(P.get('p')) || 1) };
@@ -25,7 +25,7 @@ $('#welcome-x')?.addEventListener('click', () => { try { localStorage.setItem('w
 
   let rows = [], total = 0;
   if (!S.c || cat) {
-    let q = supabase.from('site_videos').select('id,title,thumbnail_url,video_url,source_type,views,created_at,site_categories(name,slug)', { count: 'exact' }).eq('status', 'published');
+    let q = supabase.from('site_videos').select('id,title,thumbnail_url,video_url,source_type,thumb_time,views,created_at,site_categories(name,slug)', { count: 'exact' }).eq('status', 'published');
     if (cat) q = q.eq('category_id', cat.id);
     const t = S.q.replace(/[%,()*\\]/g, ' ').trim();
     if (t) q = q.or(`title.ilike.%${t}%,description.ilike.%${t}%`);
@@ -36,6 +36,8 @@ $('#welcome-x')?.addEventListener('click', () => { try { localStorage.setItem('w
   $('#summary').textContent = total ? `${total.toLocaleString('id-ID')} video` + (cat ? ` di kategori “${cat.name}”` : '') + (S.q ? ` untuk “${S.q}”` : '') : '';
   $('#grid').innerHTML = rows.length ? rows.map(card).join('') :
     `<div class="empty"><h3>Video tidak ditemukan</h3><p>Coba kata kunci yang lebih singkat atau pilih kategori lain.</p><a class="btn primary" href="/">Lihat semua video</a></div>`;
+
+  lazyVideos($('#grid'));
 
   const pages = Math.ceil(total / PAGE_SIZE);
   if (pages > 1) {
