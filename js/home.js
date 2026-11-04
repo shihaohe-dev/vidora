@@ -25,7 +25,7 @@ $('#welcome-x')?.addEventListener('click', () => { try { localStorage.setItem('w
 
   let rows = [], total = 0;
   if (!S.c || cat) {
-    let q = supabase.from('site_videos').select('id,title,thumbnail_url,views,created_at,site_categories(name,slug)', { count: 'exact' }).eq('status', 'published');
+    let q = supabase.from('site_videos').select('id,title,thumbnail_url,video_url,source_type,views,created_at,site_categories(name,slug)', { count: 'exact' }).eq('status', 'published');
     if (cat) q = q.eq('category_id', cat.id);
     const t = S.q.replace(/[%,()*\\]/g, ' ').trim();
     if (t) q = q.or(`title.ilike.%${t}%,description.ilike.%${t}%`);

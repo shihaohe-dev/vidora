@@ -21,7 +21,7 @@ const box = $('#watch');
   };
   try { if (!sessionStorage.getItem('v' + v.id)) { sessionStorage.setItem('v' + v.id, 1); supabase.rpc('site_add_view', { vid: v.id }); } } catch {}
 
-  let q = supabase.from('site_videos').select('id,title,thumbnail_url,views,site_categories(name,slug)').eq('status', 'published').neq('id', v.id).order('created_at', { ascending: false }).limit(8);
+  let q = supabase.from('site_videos').select('id,title,thumbnail_url,video_url,source_type,views,site_categories(name,slug)').eq('status', 'published').neq('id', v.id).order('created_at', { ascending: false }).limit(8);
   if (v.category_id) q = q.eq('category_id', v.category_id);
   const { data: rel } = await q;
   if (rel?.length) { $('#related').hidden = false; $('#related-grid').innerHTML = rel.map(card).join(''); }

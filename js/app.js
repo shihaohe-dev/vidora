@@ -8,7 +8,10 @@ export const PH = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' 
 
 export function card(v) {
   const c = v.site_categories;
-  return `<a class="card" href="${videoPath(v)}"><div class="thumb"><img src="${esc(v.thumbnail_url || PH)}" alt="${esc(v.title)}" loading="lazy"></div>` +
+  const media = v.thumbnail_url || !(v.source_type === 'direct' && /^https?:\/\//i.test(v.video_url || ''))
+    ? `<img src="${esc(v.thumbnail_url || PH)}" alt="${esc(v.title)}" loading="lazy">`
+    : `<video src="${esc(v.video_url)}#t=1" preload="metadata" muted playsinline tabindex="-1" aria-label="${esc(v.title)}" style="width:100%;height:100%;object-fit:cover;pointer-events:none"></video>`;
+  return `<a class="card" href="${videoPath(v)}"><div class="thumb">${media}</div>` +
     `<h3>${esc(v.title)}</h3><p>${c ? esc(c.name) + ' · ' : ''}${(v.views || 0).toLocaleString('id-ID')}x ditonton</p></a>`;
 }
 
