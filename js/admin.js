@@ -45,6 +45,21 @@ async function autoTime(url) {
 }
 const driveThumb = u => { const m = u.match(/drive\.google\.com\/file\/d\/([\w-]+)/); return m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w640` : ''; };
 
+const AR = { '16:9': 16 / 9, '4:3': 4 / 3, '1:1': 1, '3:4': 3 / 4, '9:16': 9 / 16 };
+const nearestAR = r => Object.keys(AR).reduce((a, b) => Math.abs(AR[b] - r) < Math.abs(AR[a] - r) ? b : a);
+// Deteksi rasio: file langsung dari metadata video; Google Drive dari gambar thumbnail-nya. Lainnya: null (pilih manual).
+async function detectAspect(url, type) {
+  try {
+    const dt = driveThumb(url);
+    if (dt) return await new Promise((res, rej) => { const i = new Image(); const t = setTimeout(rej, 10000); i.onload = () => { clearTimeout(t); res(nearestAR(i.naturalWidth / i.naturalHeight)); }; i.onerror = rej; i.src = dt; });
+    if (type === 'direct') {
+      const v = document.createElement('video'); v.preload = 'metadata'; v.muted = true; v.src = url;
+      try { await once(v, 'loadedmetadata', 15000); return nearestAR(v.videoWidth / v.videoHeight); } finally { v.removeAttribute('src'); v.load(); }
+    }
+  } catch {}
+  return null;
+}
+
 // Pemilih frame manual: geser/putar video, lalu "Pakai frame ini". Pratinjau tidak butuh CORS.
 function setupPicker() {
   const pv = $('#pv'), ts = $('#ts'), lab = $('#tl');
@@ -63,7 +78,8 @@ function setupPicker() {
     } catch (err) { toast('Gagal: ' + err.message); }
     b.disabled = false; b.textContent = 'Pilih otomatis';
   };
-  $('#u').addEventListener('change', load); $('#st').addEventListener('change', load);
+  const autoAspect = async () => { const { d, direct } = cur(); const a = await detectAspect(d.url, direct ? 'direct' : 'embed'); if (a) { $('#ar').value = a; toast('Rasio terdeteksi: ' + a); } };
+  $('#u').addEventListener('change', () => { load(); autoAspect(); }); $('#st').addEventListener('change', load);
   load(); show();
 }
 
@@ -109,6 +125,7 @@ async function videoTab() {
     `<label>Judul<input id="t" required maxlength="150" value="${esc(e.title)}"></label>` +
     `<label>URL video <small>(link mp4/webm langsung, link embed, atau link Google Drive)</small><input id="u" type="url" required placeholder="https://…" value="${esc(e.video_url)}"></label>` +
     `<label>Jenis URL<select id="st"><option value="auto">Otomatis</option><option value="direct"${e.source_type === 'direct' ? ' selected' : ''}>Link file langsung (mp4/webm)</option><option value="embed"${e.source_type === 'embed' ? ' selected' : ''}>Embed / iframe</option></select></label>` +
+    `<label>Rasio video <small>(otomatis terdeteksi; ubah bila salah, mis. video vertikal = 9:16)</small><select id="ar">${Object.keys(AR).map(a => `<option${(e.aspect || '16:9') === a ? ' selected' : ''}>${a}</option>`).join('')}</select></label>` +
     `<label>URL thumbnail <small>(opsional — kosongkan agar gambar diambil langsung dari video)</small><input id="th" type="url" placeholder="https://…" value="${esc(e.thumbnail_url)}"></label>` +
     `<div class="box" id="picker" hidden><strong>Pilih frame thumbnail dari video</strong><video id="pv" controls muted playsinline preload="metadata" style="width:100%;max-height:320px;background:#000;border-radius:8px"></video><input id="ts" type="range" min="0" max="0" step="0.1" value="0" aria-label="Geser untuk memilih frame"><div class="row"><button type="button" class="btn sm" id="use">Pakai frame ini</button><button type="button" class="btn sm" id="auto">Pilih otomatis</button><span id="tl"></span></div></div>` +
     `<label>Kategori<select id="c"><option value="">— tanpa kategori —</option>${cats.map(c => `<option value="${c.id}"${e.category_id === c.id ? ' selected' : ''}>${esc(c.name)}</option>`).join('')}</select></label>` +
@@ -138,7 +155,7 @@ async function videoTab() {
     if (!/^https?:\/\//i.test(d.url)) return toast('URL harus diawali http(s)://');
     const row = { title: $('#t').value.trim(), video_url: d.url, source_type: $('#st').value === 'auto' ? d.type : $('#st').value, thumbnail_url: $('#th').value.trim(),
       category_id: $('#c').value || null, tags: $('#tg').value.split(',').map(s => s.trim()).filter(Boolean), description: $('#d').value.trim(),
-      content_source: $('#src').value.trim(), consent_confirmed: $('#cf').checked, status: $('#s').value };
+      content_source: $('#src').value.trim(), consent_confirmed: $('#cf').checked, status: $('#s').value, aspect: $('#ar').value };
     let note = '';
     row.thumb_time = row.source_type === 'direct' ? thumbTime : null;
     if (!row.thumbnail_url) {

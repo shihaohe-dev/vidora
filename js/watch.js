@@ -12,7 +12,9 @@ const box = $('#watch');
     ? `<iframe src="${esc(v.video_url)}" allow="autoplay; fullscreen" allowfullscreen referrerpolicy="no-referrer" title="${esc(v.title)}"></iframe>`
     : `<video controls playsinline preload="metadata" ${v.thumbnail_url ? `poster="${esc(v.thumbnail_url)}"` : ''} src="${esc(v.video_url)}"></video>`;
   const c = v.site_categories;
-  box.innerHTML = `<div class="player">${player}</div><h1>${esc(v.title)}</h1>` +
+  const [aw, ah] = String(v.aspect || '16:9').split(':').map(Number);
+  const arStyle = aw > 0 && ah > 0 ? `--ar:${aw}/${ah};--arn:${(aw / ah).toFixed(4)}` : '';
+  box.innerHTML = `<div class="player" style="${arStyle}">${player}</div><h1>${esc(v.title)}</h1>` +
     `<div class="meta">${c ? `<a class="chip" href="/?c=${esc(c.slug)}">${esc(c.name)}</a>` : ''}<span>${(v.views || 0).toLocaleString('id-ID')}x ditonton</span></div>` +
     (v.description ? `<p class="desc">${esc(v.description)}</p>` : '') +
     `<div class="actions"><button class="btn" id="share">Bagikan</button><a class="btn" href="/report?v=${v.id}">Laporkan video ini</a></div>`;
