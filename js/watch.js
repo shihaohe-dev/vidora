@@ -19,7 +19,20 @@ const box = $('#watch');
   $('#share').onclick = async () => {
     try { navigator.share ? await navigator.share({ title: v.title, url: location.href }) : (await navigator.clipboard.writeText(location.href), $('#share').textContent = 'Link disalin ✓'); } catch {}
   };
-  try { if (!sessionStorage.getItem('v' + v.id)) { sessionStorage.setItem('v' + v.id, 1); supabase.rpc('site_add_view', { vid: v.id }); } } catch {}
+  // 1 tayangan per video per 24 jam per perangkat. Video langsung: dihitung saat mulai diputar. Embed: setelah 5 detik di halaman.
+  const vEl = box.querySelector('video'), vSpan = box.querySelector('.meta span');
+  let counted = false;
+  const count = () => {
+    if (counted) return; counted = true;
+    try { const k = 'v:' + v.id; if (Date.now() - (+localStorage.getItem(k) || 0) < 864e5) return; localStorage.setItem(k, Date.now()); } catch {}
+    // .then() wajib: pemanggilan Supabase baru dikirim saat di-await/.then (tanpa itu request tidak pernah berjalan)
+    supabase.rpc('site_add_view', { vid: v.id }).then(({ error }) => {
+      if (error) console.error('site_add_view gagal:', error.message);
+      else if (vSpan) vSpan.textContent = `${((v.views || 0) + 1).toLocaleString('id-ID')}x ditonton`;
+    });
+  };
+  if (vEl) vEl.addEventListener('play', count, { once: true });
+  else if (ok) setTimeout(() => { if (!document.hidden) count(); }, 5000);
 
   let q = supabase.from('site_videos').select('id,title,thumbnail_url,video_url,source_type,thumb_time,views,site_categories(name,slug)').eq('status', 'published').neq('id', v.id).order('created_at', { ascending: false }).limit(8);
   if (v.category_id) q = q.eq('category_id', v.category_id);
