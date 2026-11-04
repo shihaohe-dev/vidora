@@ -16,10 +16,10 @@ export async function onRequest({ request, env }) {
 
   const site = env.SITE_NAME || 'Vidora', canon = url.origin + url.pathname;
   const desc = (v.description || `Tonton ${v.title} di ${site}. Konten dewasa 18+.`).slice(0, 160);
-  const ld = JSON.stringify({ '@context': 'https://schema.org', '@type': 'VideoObject', name: v.title, description: desc,
+  const ld = !v.thumbnail_url ? '' : JSON.stringify({ '@context': 'https://schema.org', '@type': 'VideoObject', name: v.title, description: desc,
     thumbnailUrl: v.thumbnail_url ? [v.thumbnail_url] : undefined, uploadDate: v.created_at, isFamilyFriendly: false }).replace(/</g, '\\u003c');
   const head = `<title>${esc(v.title)} - ${esc(site)}</title><meta name="description" content="${esc(desc)}"><link rel="canonical" href="${esc(canon)}">` +
     `<meta property="og:title" content="${esc(v.title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:type" content="video.other">` +
-    (v.thumbnail_url ? `<meta property="og:image" content="${esc(v.thumbnail_url)}">` : '') + `<script type="application/ld+json">${ld}</script>`;
+    (v.thumbnail_url ? `<meta property="og:image" content="${esc(v.thumbnail_url)}">` : '') + (ld ? `<script type="application/ld+json">${ld}</script>` : '');
   return html(page.replace('<title>Tonton Video</title>', '').replace('<!--SEO-->', head));
 }
