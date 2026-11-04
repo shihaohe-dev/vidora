@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+
+# Ganti domain-anda.com dengan domain asli
+Sitemap: https://domain-anda.com/sitemap.xml
