@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin
 
 # Ganti domain-anda.com dengan domain asli
-Sitemap: https://domain-anda.com/sitemap.xml
+Sitemap: https://vidora-9ns.pages.dev/admin/sitemap.xml
