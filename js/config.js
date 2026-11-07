@@ -6,6 +6,9 @@ export const SITE = "vidora-9ns";                    // ganti nama situs
 export const CONTACT_EMAIL = "support.vidora@gmail.com"; // ganti: dipakai di halaman Syarat, Privasi, Laporan
 export const PAGE_SIZE = 24;
 
-// Iklan video VAST (ExoClick). Kosongkan "" untuk mematikan iklan.
-export const AD_VAST_URL = "https://s.magsrv.com/v1/vast.php?idz=6083084&ex-av=name";
-export const AD_COOLDOWN_MIN = 5;   // jeda minimal (menit) antar iklan untuk satu perangkat
+// Iklan video VAST (pre-roll), satu iklan per video yang dibuka. Kosongkan "" untuk mematikan.
+// UTAMA (Hilltop): tampil di SETIAP video yang baru dibuka, tanpa jeda.
+export const AD_VAST_PRIMARY = "https://gregariousstretch.com/dxmLF.zddyG/Nkv/ZuG/Ug/FemmS9Yu/Z/U/ljk/PNT/cf2/M/D/YCxsOtDPU_tuNyz/Y-w/NOjVE/4qOOQs";
+// CADANGAN (ExoClick): hanya dipakai bila iklan utama kosong/gagal, dan tetap memakai jeda di bawah.
+export const AD_VAST_FALLBACK = "https://s.magsrv.com/v1/vast.php?idz=6083084&ex-av=name";
+export const AD_COOLDOWN_MIN = 5;   // jeda minimal (menit) antar iklan CADANGAN untuk satu perangkat
