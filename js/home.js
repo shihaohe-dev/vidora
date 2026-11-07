@@ -1,10 +1,10 @@
 import { supabase, $, esc, card, lazyVideos, layout, randomVideos, SITE, PAGE_SIZE } from './app.js';
 layout();
 const P = new URLSearchParams(location.search);
-const S = { q: (P.get('q') || '').trim().slice(0, 80), c: P.get('c') || '', s: ['popular', 'rec'].includes(P.get('s')) ? P.get('s') : 'latest', p: Math.max(1, parseInt(P.get('p')) || 1) };
+const S = { q: (P.get('q') || '').trim().slice(0, 80), c: P.get('c') || '', s: ['latest', 'popular'].includes(P.get('s')) ? P.get('s') : 'rec', p: Math.max(1, parseInt(P.get('p')) || 1) };
 const href = (o = {}) => {
   const n = { ...S, ...o }, u = new URLSearchParams();
-  if (n.q) u.set('q', n.q); if (n.c) u.set('c', n.c); if (n.s !== 'latest') u.set('s', n.s); if (n.p > 1) u.set('p', n.p);
+  if (n.q) u.set('q', n.q); if (n.c) u.set('c', n.c); if (n.s !== 'rec') u.set('s', n.s); if (n.p > 1) u.set('p', n.p);
   const t = u.toString(); return '/' + (t ? '?' + t : '');
 };
 
@@ -16,12 +16,12 @@ $('#welcome-x')?.addEventListener('click', () => { try { localStorage.setItem('w
   const cats = data || [];
   $('#chips').innerHTML = `<a class="chip${!S.c ? ' on' : ''}" href="${href({ c: '', p: 1 })}">Semua</a>` +
     cats.map(c => `<a class="chip${S.c === c.slug ? ' on' : ''}" href="${href({ c: c.slug, p: 1 })}">${esc(c.name)}</a>`).join('');
-  $('#sort').innerHTML = [['latest', 'Terbaru'], ['popular', 'Terpopuler'], ['rec', 'Rekomendasi']]
+  $('#sort').innerHTML = [['rec', 'Rekomendasi'], ['latest', 'Terbaru'], ['popular', 'Terpopuler']]
     .map(([k, l]) => `<a class="seg-btn${S.s === k ? ' on' : ''}" href="${href({ s: k, p: 1 })}">${l}</a>`).join('');
 
   const cat = cats.find(c => c.slug === S.c);
   if (cat) document.title = `Video ${cat.name} - ${SITE}`;
-  if (S.q || S.p > 1 || S.s === 'rec' || (S.c && !cat)) document.head.insertAdjacentHTML('beforeend', '<meta name="robots" content="noindex,follow">');
+  if (S.q || S.p > 1 || (S.c && !cat)) document.head.insertAdjacentHTML('beforeend', '<meta name="robots" content="noindex,follow">');
 
   let rows = [], total = 0;
   const t = S.q.replace(/[%,()*\\]/g, ' ').trim();
