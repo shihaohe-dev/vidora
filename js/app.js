@@ -22,6 +22,36 @@ export function lazyVideos(root = document) {
   vs.forEach(v => io.observe(v));
 }
 
+// Kolom yang dipakai kartu video.
+export const CARD_COLS = 'id,title,thumbnail_url,video_url,source_type,thumb_time,views,created_at,site_categories(name,slug)';
+const MAX_IDS = 1000; // batas baris per permintaan Supabase
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+// Video acak (berbeda tiap dimuat). Ambil daftar id ringan -> acak di browser -> ambil detail n video terpilih.
+// Bila video > 1000, jendela id diambil dari posisi acak supaya seluruh koleksi tetap berpeluang muncul.
+export async function randomVideos({ n = 8, catId = '', q = '', excludeId = '' } = {}) {
+  const build = () => {
+    let x = supabase.from('site_videos').select('id', { count: 'exact' }).eq('status', 'published');
+    if (catId) x = x.eq('category_id', catId);
+    if (q) x = x.or(`title.ilike.%${q}%,description.ilike.%${q}%`);
+    if (excludeId) x = x.neq('id', excludeId);
+    return x.order('created_at', { ascending: false });
+  };
+  const r = await build().range(0, MAX_IDS - 1);
+  if (r.error) { console.error('randomVideos gagal:', r.error.message); return []; }
+  let ids = (r.data || []).map(x => x.id);
+  const total = r.count || 0;
+  if (total > MAX_IDS) {
+    const start = Math.floor(Math.random() * (total - MAX_IDS + 1));
+    const r2 = await build().range(start, start + MAX_IDS - 1);
+    if (!r2.error && r2.data?.length) ids = r2.data.map(x => x.id);
+  }
+  const pick = shuffle(ids).slice(0, n);
+  if (!pick.length) return [];
+  const { data, error } = await supabase.from('site_videos').select(CARD_COLS).in('id', pick);
+  if (error) { console.error('randomVideos gagal:', error.message); return []; }
+  return shuffle(data || []);
+}
+
 export function card(v) {
   const c = v.site_categories;
   return `<a class="card" href="${videoPath(v)}"><div class="thumb">${thumbMedia(v)}</div>` +

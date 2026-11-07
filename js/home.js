@@ -1,7 +1,7 @@
-import { supabase, $, esc, card, lazyVideos, layout, SITE, PAGE_SIZE } from './app.js';
+import { supabase, $, esc, card, lazyVideos, layout, randomVideos, SITE, PAGE_SIZE } from './app.js';
 layout();
 const P = new URLSearchParams(location.search);
-const S = { q: (P.get('q') || '').trim().slice(0, 80), c: P.get('c') || '', s: P.get('s') === 'popular' ? 'popular' : 'latest', p: Math.max(1, parseInt(P.get('p')) || 1) };
+const S = { q: (P.get('q') || '').trim().slice(0, 80), c: P.get('c') || '', s: ['popular', 'rec'].includes(P.get('s')) ? P.get('s') : 'latest', p: Math.max(1, parseInt(P.get('p')) || 1) };
 const href = (o = {}) => {
   const n = { ...S, ...o }, u = new URLSearchParams();
   if (n.q) u.set('q', n.q); if (n.c) u.set('c', n.c); if (n.s !== 'latest') u.set('s', n.s); if (n.p > 1) u.set('p', n.p);
@@ -16,24 +16,27 @@ $('#welcome-x')?.addEventListener('click', () => { try { localStorage.setItem('w
   const cats = data || [];
   $('#chips').innerHTML = `<a class="chip${!S.c ? ' on' : ''}" href="${href({ c: '', p: 1 })}">Semua</a>` +
     cats.map(c => `<a class="chip${S.c === c.slug ? ' on' : ''}" href="${href({ c: c.slug, p: 1 })}">${esc(c.name)}</a>`).join('');
-  $('#sort').innerHTML = [['latest', 'Terbaru'], ['popular', 'Terpopuler']]
+  $('#sort').innerHTML = [['latest', 'Terbaru'], ['popular', 'Terpopuler'], ['rec', 'Rekomendasi']]
     .map(([k, l]) => `<a class="seg-btn${S.s === k ? ' on' : ''}" href="${href({ s: k, p: 1 })}">${l}</a>`).join('');
 
   const cat = cats.find(c => c.slug === S.c);
   if (cat) document.title = `Video ${cat.name} - ${SITE}`;
-  if (S.q || S.p > 1 || (S.c && !cat)) document.head.insertAdjacentHTML('beforeend', '<meta name="robots" content="noindex,follow">');
+  if (S.q || S.p > 1 || S.s === 'rec' || (S.c && !cat)) document.head.insertAdjacentHTML('beforeend', '<meta name="robots" content="noindex,follow">');
 
   let rows = [], total = 0;
-  if (!S.c || cat) {
+  const t = S.q.replace(/[%,()*\\]/g, ' ').trim();
+  if (S.s === 'rec') {
+    // Rekomendasi: acak baru setiap halaman dibuka/di-refresh, tanpa pagination.
+    if (!S.c || cat) { rows = await randomVideos({ n: PAGE_SIZE, catId: cat?.id, q: t }); total = rows.length; }
+  } else if (!S.c || cat) {
     let q = supabase.from('site_videos').select('id,title,thumbnail_url,video_url,source_type,thumb_time,views,created_at,site_categories(name,slug)', { count: 'exact' }).eq('status', 'published');
     if (cat) q = q.eq('category_id', cat.id);
-    const t = S.q.replace(/[%,()*\\]/g, ' ').trim();
     if (t) q = q.or(`title.ilike.%${t}%,description.ilike.%${t}%`);
     q = q.order(S.s === 'popular' ? 'views' : 'created_at', { ascending: false }).range((S.p - 1) * PAGE_SIZE, S.p * PAGE_SIZE - 1);
     const r = await q; rows = r.data || []; total = r.count || 0;
   }
 
-  $('#summary').textContent = total ? `${total.toLocaleString('id-ID')} video` + (cat ? ` di kategori “${cat.name}”` : '') + (S.q ? ` untuk “${S.q}”` : '') : '';
+  $('#summary').textContent = S.s === 'rec' ? (total ? 'Pilihan acak untuk Anda — muat ulang halaman untuk video lain' + (cat ? ` di kategori “${cat.name}”` : '') + (S.q ? ` untuk “${S.q}”` : '') : '') : total ? `${total.toLocaleString('id-ID')} video` + (cat ? ` di kategori “${cat.name}”` : '') + (S.q ? ` untuk “${S.q}”` : '') : '';
   $('#grid').innerHTML = rows.length ? rows.map(card).join('') :
     `<div class="empty"><h3>Video tidak ditemukan</h3><p>Coba kata kunci yang lebih singkat atau pilih kategori lain.</p><a class="btn primary" href="/">Lihat semua video</a></div>`;
 

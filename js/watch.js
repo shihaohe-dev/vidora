@@ -1,4 +1,4 @@
-import { supabase, $, esc, card, lazyVideos, layout, SITE } from './app.js';
+import { supabase, $, esc, card, lazyVideos, layout, randomVideos, SITE } from './app.js';
 import { initPreroll } from './ads.js';
 layout();
 const id = (location.pathname.match(/[0-9a-f-]{36}$/i) || [])[0] || new URLSearchParams(location.search).get('id');
@@ -37,8 +37,7 @@ const box = $('#watch');
   if (vEl) { vEl.addEventListener('play', count, { once: true }); initPreroll(vEl); }
   else if (ok) setTimeout(() => { if (!document.hidden) count(); }, 5000);
 
-  let q = supabase.from('site_videos').select('id,title,thumbnail_url,video_url,source_type,thumb_time,views,site_categories(name,slug)').eq('status', 'published').neq('id', v.id).order('created_at', { ascending: false }).limit(8);
-  if (v.category_id) q = q.eq('category_id', v.category_id);
-  const { data: rel } = await q;
+  // Video lainnya: acak, berbeda setiap halaman dibuka (video yang sedang ditonton dikecualikan).
+  const rel = await randomVideos({ n: 8, excludeId: v.id });
   if (rel?.length) { $('#related').hidden = false; $('#related-grid').innerHTML = rel.map(card).join(''); lazyVideos($('#related-grid')); }
 })();
