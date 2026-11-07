@@ -1,4 +1,5 @@
 import { supabase, $, esc, card, lazyVideos, layout, SITE } from './app.js';
+import { initPreroll } from './ads.js';
 layout();
 const id = (location.pathname.match(/[0-9a-f-]{36}$/i) || [])[0] || new URLSearchParams(location.search).get('id');
 const box = $('#watch');
@@ -33,7 +34,7 @@ const box = $('#watch');
       else if (vSpan) vSpan.textContent = `${((v.views || 0) + 1).toLocaleString('id-ID')}x ditonton`;
     });
   };
-  if (vEl) vEl.addEventListener('play', count, { once: true });
+  if (vEl) { vEl.addEventListener('play', count, { once: true }); initPreroll(vEl); }
   else if (ok) setTimeout(() => { if (!document.hidden) count(); }, 5000);
 
   let q = supabase.from('site_videos').select('id,title,thumbnail_url,video_url,source_type,thumb_time,views,site_categories(name,slug)').eq('status', 'published').neq('id', v.id).order('created_at', { ascending: false }).limit(8);
