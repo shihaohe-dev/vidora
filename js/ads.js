@@ -1,6 +1,6 @@
-// Iklan video pre-roll (format VAST, mis. ExoClick) untuk pemutar video langsung.
+// Iklan video pre-roll (format VAST, Hilltop) untuk pemutar video langsung.
 // Aturan: iklan gagal / lambat / kosong => video konten langsung diputar tanpa iklan.
-import { AD_VAST_PRIMARY, AD_VAST_FALLBACK, AD_COOLDOWN_MIN } from './config.js';
+import { AD_VAST_PRIMARY } from './config.js';
 
 const text = el => (el?.textContent || '').trim();
 const all = (root, tag) => [...root.getElementsByTagName(tag)];
@@ -71,29 +71,15 @@ function playAd(vEl, vast) {
   });
 }
 
-// Dipasang pada <video> konten: satu iklan pre-roll sebelum video mulai, setiap kali halaman video dibuka.
-// Iklan utama (Hilltop) selalu dicoba lebih dulu, tanpa jeda. Hanya bila kosong/gagal/lambat, iklan cadangan
-// (ExoClick, dengan jeda) dicoba. Hanya SATU iklan yang diputar per video, jadi tidak bentrok.
+// Dipasang pada <video> konten: satu iklan pre-roll (Hilltop) sebelum video mulai, setiap kali halaman video dibuka.
+// Bila iklan kosong/gagal/lambat, video konten langsung diputar tanpa iklan.
 export function initPreroll(vEl) {
-  const recent = k => { try { return Date.now() - (+localStorage.getItem(k) || 0) < AD_COOLDOWN_MIN * 60000; } catch { return false; } };
-  const sources = [
-    AD_VAST_PRIMARY && { url: AD_VAST_PRIMARY, key: '' },
-    AD_VAST_FALLBACK && !recent('adLastFallback') && { url: AD_VAST_FALLBACK, key: 'adLastFallback' },
-  ].filter(Boolean);
-  if (!sources.length) return;
-  const pendings = sources.map(x => load(x.url).catch(e => { console.warn('VAST dilewati:', e.message); return null; }));
+  if (!AD_VAST_PRIMARY) return;
+  const pending = load(AD_VAST_PRIMARY).catch(e => { console.warn('VAST dilewati:', e.message); return null; });
   vEl.addEventListener('play', async () => {
     vEl.pause();
-    const deadline = Date.now() + 4000; // batas total menunggu iklan sebelum video konten diputar
-    for (let k = 0; k < pendings.length; k++) {
-      const left = Math.max(0, deadline - Date.now());
-      const wait = k === 0 && pendings.length > 1 ? Math.min(left, 2500) : left; // sisakan waktu untuk cadangan
-      const vast = await Promise.race([pendings[k], new Promise(r => setTimeout(() => r(null), wait))]);
-      if (vast && await playAd(vEl, vast)) {
-        if (sources[k].key) { try { localStorage.setItem(sources[k].key, Date.now()); } catch {} }
-        break;
-      }
-    }
+    const vast = await Promise.race([pending, new Promise(r => setTimeout(() => r(null), 4000))]); // batas tunggu iklan
+    if (vast) await playAd(vEl, vast);
     vEl.play().catch(() => {});
   }, { once: true });
 }
