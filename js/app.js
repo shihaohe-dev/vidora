@@ -1,4 +1,4 @@
-import { supabase, SITE, CONTACT_EMAIL, PAGE_SIZE } from './config.js';
+import { supabase, SITE, CONTACT_EMAIL, PAGE_SIZE, TELEGRAM_URL, X_ACCOUNTS } from './config.js';
 export { supabase, SITE, PAGE_SIZE };
 export const $ = (s, r = document) => r.querySelector(s);
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -28,7 +28,7 @@ const MAX_IDS = 1000; // batas baris per permintaan Supabase
 const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 // Video acak (berbeda tiap dimuat). Ambil daftar id ringan -> acak di browser -> ambil detail n video terpilih.
 // Bila video > 1000, jendela id diambil dari posisi acak supaya seluruh koleksi tetap berpeluang muncul.
-export async function randomVideos({ n = 8, catId = '', q = '', excludeId = '' } = {}) {
+export async function randomVideos({ n = 8, catId = '', q = '', excludeId = '', exclude = [] } = {}) {
   const build = () => {
     let x = supabase.from('site_videos').select('id', { count: 'exact' }).eq('status', 'published');
     if (catId) x = x.eq('category_id', catId);
@@ -45,17 +45,30 @@ export async function randomVideos({ n = 8, catId = '', q = '', excludeId = '' }
     const r2 = await build().range(start, start + MAX_IDS - 1);
     if (!r2.error && r2.data?.length) ids = r2.data.map(x => x.id);
   }
+  if (exclude.length) { const skip = new Set(exclude); ids = ids.filter(i => !skip.has(i)); }
   const pick = shuffle(ids).slice(0, n);
-  if (!pick.length) return [];
+  const more = ids.length - pick.length; // sisa video yang belum pernah ditampilkan
+  if (!pick.length) return Object.assign([], { more: 0 });
   const { data, error } = await supabase.from('site_videos').select(CARD_COLS).in('id', pick);
   if (error) { console.error('randomVideos gagal:', error.message); return []; }
-  return shuffle(data || []);
+  return Object.assign(shuffle(data || []), { more });
 }
 
 export function card(v) {
   const c = v.site_categories;
   return `<a class="card" href="${videoPath(v)}"><div class="thumb">${thumbMedia(v)}</div>` +
     `<h3>${esc(v.title)}</h3><p>${c ? esc(c.name) + ' · ' : ''}${(v.views || 0).toLocaleString('id-ID')}x ditonton</p></a>`;
+}
+
+const ICON_TG = '<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M21.9 4.1 2.7 11.5c-1.3.5-1.3 1.3-.2 1.6l4.9 1.5 1.9 5.8c.2.6.1.8.7.8.5 0 .7-.2 1-.5l2.4-2.3 4.9 3.6c.9.5 1.5.2 1.7-.8L23 5.4c.3-1.3-.5-1.9-1.1-1.3zM8.6 13.6l9.7-6.1c.5-.3.9-.1.5.2l-8.1 7.3-.3 3.4z"/></svg>';
+const ICON_X = '<svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true"><path d="M18.2 2.3h3.4l-7.4 8.5 8.7 11.5h-6.8l-5.3-7-6.1 7H1.3l7.9-9.1L.9 2.3h7l4.8 6.4zm-1.2 18h1.9L7 4.2H5z"/></svg>';
+const isUrl = u => /^https?:\/\//i.test(u || '');
+function socials() {
+  const L = 'target="_blank" rel="noopener noreferrer nofollow"';
+  const a = [];
+  if (isUrl(TELEGRAM_URL)) a.push(`<a class="soc tg" href="${esc(TELEGRAM_URL)}" ${L}>${ICON_TG}<span>Channel Telegram</span></a>`);
+  (X_ACCOUNTS || []).filter(x => isUrl(x.url)).forEach(x => a.push(`<a class="soc" href="${esc(x.url)}" ${L}>${ICON_X}<span>${esc(x.name || 'X')}</span></a>`));
+  return a.length ? `<div class="social"><b>Ikuti kami:</b>${a.join('')}</div>` : '';
 }
 
 export function layout() {
@@ -68,7 +81,7 @@ export function layout() {
     `<form class="search" action="/" role="search"><input type="search" name="q" maxlength="80" placeholder="Cari video…" aria-label="Cari video" value="${esc(q)}">` +
     `<button type="submit">Cari</button></form></div></header>`);
   document.body.insertAdjacentHTML('beforeend',
-    `<footer class="site-footer"><div class="wrap"><nav><a href="/terms">Syarat &amp; Kebijakan Konten</a><a href="/privacy">Privasi</a><a href="/report">Laporkan Konten</a></nav>` +
+    `<footer class="site-footer"><div class="wrap">${socials()}<nav><a href="/terms">Syarat &amp; Kebijakan Konten</a><a href="/privacy">Privasi</a><a href="/report">Laporkan Konten</a></nav>` +
     `<p>Situs ini hanya untuk pengguna berusia 18 tahun ke atas. Kami tidak menyimpan video di server kami; video ditautkan dari sumber luar. ` +
     `Laporan konten ke <span data-email></span>.</p><p>© ${new Date().getFullYear()} ${esc(SITE)}</p></div></footer>`);
   document.querySelectorAll('[data-email]').forEach(el => el.innerHTML = `<a href="mailto:${esc(CONTACT_EMAIL)}">${esc(CONTACT_EMAIL)}</a>`);

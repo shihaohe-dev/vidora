@@ -12,3 +12,10 @@ export const AD_VAST_PRIMARY = "https://gregariousstretch.com/dxmLF.zddyG/Nkv/Zu
 // CADANGAN (ExoClick): hanya dipakai bila iklan utama kosong/gagal, dan tetap memakai jeda di bawah.
 export const AD_VAST_FALLBACK = "https://s.magsrv.com/v1/vast.php?idz=6083084&ex-av=name";
 export const AD_COOLDOWN_MIN = 5;   // jeda minimal (menit) antar iklan CADANGAN untuk satu perangkat
+
+// Tautan sosial (tampil di footer semua halaman). Kosongkan "" / [] untuk menyembunyikan.
+export const TELEGRAM_URL = "https://t.me/viral_lokalid";   // contoh: "https://t.me/namachannel"
+export const X_ACCOUNTS = [       // contoh: { name: "@akun1", url: "https://x.com/akun1" }
+   { name: "AyuMood", url: "https://x.com/AyuMoodvc5" },
+  // { name: "@akun2", url: "https://x.com/akun2" },
+];

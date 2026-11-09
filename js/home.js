@@ -42,8 +42,30 @@ $('#welcome-x')?.addEventListener('click', () => { try { localStorage.setItem('w
 
   lazyVideos($('#grid'));
 
+  // Rekomendasi: tombol "Selanjutnya" memuat PAGE_SIZE video acak berikutnya (tanpa mengulang yang sudah tampil).
+  if (S.s === 'rec' && rows.length) {
+    const seen = new Set(rows.map(v => v.id));
+    const pager = $('#pager');
+    const draw = more => {
+      pager.innerHTML = more > 0
+        ? '<button class="btn primary" id="rec-next" type="button">Selanjutnya ›</button>'
+        : '<span class="gap">Semua video sudah ditampilkan — muat ulang halaman untuk acak ulang.</span>';
+      $('#rec-next')?.addEventListener('click', next);
+    };
+    const next = async e => {
+      const b = e.currentTarget; b.disabled = true; b.textContent = 'Memuat…';
+      const r = await randomVideos({ n: PAGE_SIZE, catId: cat?.id, q: t, exclude: [...seen] });
+      if (!r.length) { b.disabled = false; b.textContent = 'Selanjutnya ›'; return; }
+      r.forEach(v => seen.add(v.id));
+      $('#grid').innerHTML = r.map(card).join(''); lazyVideos($('#grid'));
+      $('#grid').scrollIntoView({ block: 'start' });
+      draw(r.more || 0);
+    };
+    draw(rows.more || 0);
+  }
+
   const pages = Math.ceil(total / PAGE_SIZE);
-  if (pages > 1) {
+  if (S.s !== 'rec' && pages > 1) {
     const set = [...new Set([1, pages, S.p - 1, S.p, S.p + 1])].filter(n => n >= 1 && n <= pages).sort((a, b) => a - b);
     let h = `<a class="btn${S.p <= 1 ? ' off' : ''}" href="${href({ p: S.p - 1 })}">‹ Sebelumnya</a>`, last = 0;
     for (const n of set) { if (n - last > 1) h += '<span class="gap">…</span>'; h += `<a class="num${n === S.p ? ' on' : ''}" href="${href({ p: n })}">${n}</a>`; last = n; }
