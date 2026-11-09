@@ -6,8 +6,7 @@ export const SITE = "vidora-9ns";                    // ganti nama situs
 export const CONTACT_EMAIL = "support.vidora@gmail.com"; // ganti: dipakai di halaman Syarat, Privasi, Laporan
 export const PAGE_SIZE = 24;
 
-// Iklan video VAST (pre-roll), satu iklan per video yang dibuka. Kosongkan "" untuk mematikan.
-// UTAMA (Hilltop): tampil di SETIAP video yang baru dibuka, tanpa jeda.
+// Iklan video VAST (Hilltop, pre-roll), tampil di SETIAP video yang baru dibuka. Kosongkan "" untuk mematikan.
 export const AD_VAST_PRIMARY = "https://gregariousstretch.com/dxmLF.zddyG/Nkv/ZuG/Ug/FemmS9Yu/Z/U/ljk/PNT/cf2/M/D/YCxsOtDPU_tuNyz/Y-w/NOjVE/4qOOQs";
 
 // Tautan sosial (tampil di footer semua halaman). Kosongkan "" / [] untuk menyembunyikan.
