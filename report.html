@@ -2,11 +2,12 @@
 <html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Laporkan Konten</title><meta name="description" content="Laporkan video yang melanggar kebijakan konten."><link rel="stylesheet" href="/css/style.css"></head>
 <body><main class="wrap page"><h1>Laporkan Konten</h1>
-<p>Laporan tentang <b>anak di bawah umur</b> atau video <b>tanpa persetujuan</b> kami tangani paling cepat dan videonya segera disembunyikan sambil diperiksa. Anda juga bisa mengirim email ke <span data-email></span>.</p>
-<form id="form" class="box"><label>Tautan video<input id="ref" placeholder="Tempel link halaman video" required></label>
-<label>Alasan<select id="reason"><option>Ada orang di bawah 18 tahun</option><option>Tanpa persetujuan / bocoran / rekaman diam-diam</option><option>Pelanggaran hak cipta</option><option>Saya muncul di video dan ingin dihapus</option><option>Lainnya</option></select></label>
+<p>Laporan tentang <b>anak di bawah umur</b> atau video <b>tanpa persetujuan</b> kami prioritaskan: pengelola langsung diberi tahu, video disembunyikan sementara setelah laporan dari beberapa pelapor berbeda, dan kami menargetkan peninjauan dalam <b>24 jam</b>. Anda juga bisa mengirim email ke <span data-email></span>. Laporan hak cipta: lihat <a href="/terms#hak-cipta">Syarat &amp; Kebijakan Konten</a>.</p>
+<form id="form" class="box"><label>Tautan video<input id="ref" placeholder="Tempel link halaman video" required maxlength="500"></label>
+<label>Alasan<select id="reason"><option value="underage">Ada orang di bawah 18 tahun</option><option value="non_consent">Tanpa persetujuan / bocoran / rekaman diam-diam</option><option value="copyright">Pelanggaran hak cipta</option><option value="self">Saya muncul di video dan ingin dihapus</option><option value="other">Lainnya</option></select></label>
 <label>Penjelasan<textarea id="details" rows="4" maxlength="1800"></textarea></label>
 <label>Kontak Anda (opsional, agar kami bisa menghubungi)<input id="contact" maxlength="200"></label>
-<p id="msg" class="err"></p><button id="send" class="btn primary">Kirim laporan</button></form>
+<div id="ts"></div>
+<p id="msg" class="err" role="alert"></p><button id="send" class="btn primary">Kirim laporan</button></form>
 <div id="ok" class="box" hidden><h2>Terima kasih</h2><p>Laporan Anda sudah kami terima dan akan diperiksa.</p><a class="btn" href="/">Ke beranda</a></div></main>
 <script type="module" src="/js/report.js"></script></body></html>

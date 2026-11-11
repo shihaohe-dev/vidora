@@ -1,4 +1,8 @@
 import { supabase, $, esc, slugify, videoPath, thumbMedia, lazyVideos, SITE } from './app.js';
+import { EMBED_ALLOW } from './config.js';
+const REASONS = { underage: 'Anak di bawah 18 tahun', non_consent: 'Tanpa persetujuan / bocoran', copyright: 'Pelanggaran hak cipta', self: 'Saya muncul di video', other: 'Lainnya' };
+const CRITICAL = ['underage', 'non_consent'];
+const hostOk = u => { try { const h = new URL(u).hostname.toLowerCase(); return !EMBED_ALLOW.length || EMBED_ALLOW.some(d => h === d || h.endsWith('.' + d)); } catch { return false; } };
 const app = $('#app');
 const toast = m => { const t = $('#toast'); t.textContent = m; t.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => t.hidden = true, 3500); };
 let cats = [], tab = 'video', editing = null, q = '', thumbTime = null;
@@ -152,10 +156,13 @@ async function videoTab() {
   $('#vf').onsubmit = async ev => {
     ev.preventDefault();
     const d = detect($('#u').value);
-    if (!/^https?:\/\//i.test(d.url)) return toast('URL harus diawali http(s)://');
+    if (!/^https:\/\//i.test(d.url)) return toast('URL video harus diawali https://');
     const row = { title: $('#t').value.trim(), video_url: d.url, source_type: $('#st').value === 'auto' ? d.type : $('#st').value, thumbnail_url: $('#th').value.trim(),
       category_id: $('#c').value || null, tags: $('#tg').value.split(',').map(s => s.trim()).filter(Boolean), description: $('#d').value.trim(),
       content_source: $('#src').value.trim(), consent_confirmed: $('#cf').checked, status: $('#s').value, aspect: $('#ar').value };
+    if (row.thumbnail_url && !/^https:\/\//i.test(row.thumbnail_url)) return toast('URL thumbnail harus diawali https://');
+    if (row.source_type === 'embed' && !hostOk(d.url)) return toast('Domain embed belum ada di EMBED_ALLOW (js/config.js).');
+    if (row.title.length > 150 || row.description.length > 1000 || row.tags.length > 20) return toast('Judul maks 150, deskripsi maks 1000, tag maks 20.');
     let note = '';
     row.thumb_time = row.source_type === 'direct' ? thumbTime : null;
     if (!row.thumbnail_url) {
@@ -183,7 +190,7 @@ async function videoTab() {
     const b = ev.target.closest('button'); if (!b) return;
     if (b.dataset.e) { editing = rows.find(v => v.id === b.dataset.e); videoTab(); scrollTo(0, 0); }
     if (b.dataset.h) { await supabase.from('site_videos').update({ status: b.dataset.s === 'published' ? 'hidden' : 'published' }).eq('id', b.dataset.h); videoTab(); }
-    if (b.dataset.x && confirm('Hapus video ini permanen?')) { await supabase.from('site_videos').delete().eq('id', b.dataset.x); videoTab(); }
+    if (b.dataset.x && confirm('Hapus video ini PERMANEN? Disarankan memakai "Sembunyikan" agar jejak penanganan laporan tetap ada.')) { await supabase.from('site_videos').delete().eq('id', b.dataset.x); videoTab(); }
   };
 }
 
@@ -204,15 +211,21 @@ function catsTab() {
 async function reportsTab() {
   const { data } = await supabase.from('site_reports').select('*,site_videos(id,title)').eq('status', 'open').order('created_at', { ascending: false });
   const rows = data || [];
-  $('#pane').innerHTML = `<div class="box"><h2>Laporan terbuka</h2>${rows.map(r => `<div class="item col"><div><strong>${esc(r.reason)}</strong> <small>${new Date(r.created_at).toLocaleString('id-ID')}</small></div>` +
-    `<div>${r.site_videos ? `<a href="${videoPath(r.site_videos)}" target="_blank">${esc(r.site_videos.title)}</a>` : '<em>Video tidak tercatat / sudah dihapus</em>'}</div>` +
-    `<div>${esc(r.details || '')}</div><small>Kontak: ${esc(r.contact || '-')}</small>` +
+  const label = r => REASONS[r.reason] || r.reason;
+  $('#pane').innerHTML = `<div class="box"><h2>Laporan terbuka</h2>${rows.map(r => `<div class="item col"><div><strong>${CRITICAL.includes(r.reason) ? '🚨 ' : ''}${esc(label(r))}</strong> <small>${new Date(r.created_at).toLocaleString('id-ID')}</small></div>` +
+    `<div>${r.site_videos ? `<a href="${videoPath(r.site_videos)}" target="_blank" rel="noopener">${esc(r.site_videos.title)}</a>` : `<em>Video tidak tercatat / sudah dihapus${r.video_title ? ': ' + esc(r.video_title) : ''}</em>`}</div>` +
+    `<div>${esc(r.details || '')}</div>${r.ref ? `<small>Tautan: ${esc(r.ref)}</small>` : ''}<small>Kontak: ${esc(r.contact || '-')}</small>` +
     `<div class="row">${r.video_id ? `<button class="btn sm danger" data-hide="${r.id}" data-v="${r.video_id}">Sembunyikan video &amp; selesai</button>` : ''}<button class="btn sm" data-done="${r.id}">Tandai selesai</button></div></div>`).join('') || '<p>Tidak ada laporan baru.</p>'}</div>`;
   $('#pane').onclick = async e => {
     const b = e.target.closest('button'); if (!b) return;
-    if (b.dataset.hide) await supabase.from('site_videos').update({ status: 'hidden' }).eq('id', b.dataset.v);
     const id = b.dataset.hide || b.dataset.done; if (!id) return;
-    await supabase.from('site_reports').update({ status: 'closed' }).eq('id', id); shell();
+    const note = prompt('Catatan penanganan (opsional, mis. "video disembunyikan, sumber tidak berlisensi"):', '');
+    if (note === null) return;                                   // dibatalkan
+    if (b.dataset.hide) await supabase.from('site_videos').update({ status: 'hidden' }).eq('id', b.dataset.v);
+    const { data: { session } } = await supabase.auth.getSession();
+    const { error } = await supabase.from('site_reports').update({ status: 'closed', handled_by: session?.user?.id || null, handled_at: new Date().toISOString(), resolution: note.trim().slice(0, 1000) || null }).eq('id', id);
+    if (error) toast('Gagal menyimpan: ' + error.message);
+    shell();
   };
 }
 init();

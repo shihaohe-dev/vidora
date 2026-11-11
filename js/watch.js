@@ -1,16 +1,19 @@
 import { supabase, $, esc, card, lazyVideos, layout, randomVideos, SITE } from './app.js';
 import { initPreroll } from './ads.js';
+import { EMBED_ALLOW } from './config.js';
 layout();
 const id = (location.pathname.match(/[0-9a-f-]{36}$/i) || [])[0] || new URLSearchParams(location.search).get('id');
 const box = $('#watch');
 
 (async () => {
-  const { data: v } = id ? await supabase.from('site_videos').select('*,site_categories(name,slug)').eq('id', id).eq('status', 'published').maybeSingle() : {};
+  const { data: v } = id ? await supabase.from('site_videos').select('id,title,description,video_url,source_type,thumbnail_url,aspect,views,site_categories(name,slug)').eq('id', id).eq('status', 'published').maybeSingle() : {};
   if (!v) { box.innerHTML = '<div class="empty"><h3>Video tidak tersedia</h3><p>Video ini mungkin sudah dihapus.</p><a class="btn primary" href="/">Ke beranda</a></div>'; return; }
   document.title = `${v.title} - ${SITE}`;
-  const ok = /^https?:\/\//i.test(v.video_url);
-  const player = !ok ? '' : v.source_type === 'embed'
-    ? `<iframe src="${esc(v.video_url)}" allow="autoplay; fullscreen" allowfullscreen referrerpolicy="no-referrer" title="${esc(v.title)}"></iframe>`
+  // Hanya https. Untuk embed, domain harus ada di EMBED_ALLOW (bila daftar diisi).
+  const hostOk = u => { try { const h = new URL(u).hostname.toLowerCase(); return !EMBED_ALLOW.length || EMBED_ALLOW.some(d => h === d || h.endsWith('.' + d)); } catch { return false; } };
+  const ok = /^https:\/\//i.test(v.video_url) && (v.source_type !== 'embed' || hostOk(v.video_url));
+  const player = !ok ? '<div class="empty"><p>Sumber video tidak tersedia.</p></div>' : v.source_type === 'embed'
+    ? `<iframe src="${esc(v.video_url)}" allow="autoplay; fullscreen" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation allow-popups allow-popups-to-escape-sandbox allow-forms" referrerpolicy="no-referrer" title="${esc(v.title)}"></iframe>`
     : `<video controls playsinline preload="metadata" ${v.thumbnail_url ? `poster="${esc(v.thumbnail_url)}"` : ''} src="${esc(v.video_url)}"></video>`;
   const c = v.site_categories;
   const [aw, ah] = String(v.aspect || '16:9').split(':').map(Number);
@@ -28,11 +31,13 @@ const box = $('#watch');
   const count = () => {
     if (counted) return; counted = true;
     try { const k = 'v:' + v.id; if (Date.now() - (+localStorage.getItem(k) || 0) < 864e5) return; localStorage.setItem(k, Date.now()); } catch {}
-    // .then() wajib: pemanggilan Supabase baru dikirim saat di-await/.then (tanpa itu request tidak pernah berjalan)
-    supabase.rpc('site_add_view', { vid: v.id }).then(({ error }) => {
-      if (error) console.error('site_add_view gagal:', error.message);
-      else if (vSpan) vSpan.textContent = `${((v.views || 0) + 1).toLocaleString('id-ID')}x ditonton`;
-    });
+    // Penghitungan tayangan lewat /api/view (dedupe + batas laju di server). Bila endpoint belum aktif (404/503), pakai RPC lama.
+    const bump = () => { if (vSpan) vSpan.textContent = `${((v.views || 0) + 1).toLocaleString('id-ID')}x ditonton`; };
+    fetch('/api/view', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ vid: v.id }), keepalive: true })
+      .then(async r => {
+        if (r.status === 404 || r.status === 503) { const { error } = await supabase.rpc('site_add_view', { vid: v.id }); if (!error) bump(); return; }
+        if (r.ok && (await r.json()).counted) bump();
+      }).catch(() => {});
   };
   if (vEl) { vEl.addEventListener('play', count, { once: true }); initPreroll(vEl); }
   else if (ok) setTimeout(() => { if (!document.hidden) count(); }, 5000);

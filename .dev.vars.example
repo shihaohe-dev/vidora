@@ -1,0 +1,7 @@
+# Salin menjadi .dev.vars untuk uji lokal (wrangler pages dev). JANGAN di-commit. Di Cloudflare isi lewat Settings > Variables and Secrets.
+SUPABASE_SERVICE_KEY=isi_dengan_service_role_key_rahasia
+HASH_SALT=isi_string_acak_panjang
+TURNSTILE_SECRET=
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+AUTOHIDE_THRESHOLD=2

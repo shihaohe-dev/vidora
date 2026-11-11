@@ -1,4 +1,4 @@
-import { supabase, SITE, CONTACT_EMAIL, PAGE_SIZE, TELEGRAM_URL, X_ACCOUNTS } from './config.js';
+import { supabase, SITE, CONTACT_EMAIL, PAGE_SIZE, TELEGRAM_URL, X_ACCOUNTS, OPERATOR_NAME } from './config.js';
 export { supabase, SITE, PAGE_SIZE };
 export const $ = (s, r = document) => r.querySelector(s);
 export const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -85,6 +85,7 @@ export function layout() {
     `<p>Situs ini hanya untuk pengguna berusia 18 tahun ke atas. Kami tidak menyimpan video di server kami; video ditautkan dari sumber luar. ` +
     `Laporan konten ke <span data-email></span>.</p><p>© ${new Date().getFullYear()} ${esc(SITE)}</p></div></footer>`);
   document.querySelectorAll('[data-email]').forEach(el => el.innerHTML = `<a href="mailto:${esc(CONTACT_EMAIL)}">${esc(CONTACT_EMAIL)}</a>`);
+  document.querySelectorAll('[data-operator]').forEach(el => el.textContent = OPERATOR_NAME);
   gate();
 }
 

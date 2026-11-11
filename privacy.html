@@ -2,7 +2,15 @@
 <html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kebijakan Privasi</title><meta name="description" content="Data apa yang kami kumpulkan dan bagaimana kami memakainya."><link rel="stylesheet" href="/css/style.css"></head>
 <body><main class="wrap page"><h1>Kebijakan Privasi</h1>
-<h2>Data yang kami simpan</h2><p>Di peramban Anda: penanda bahwa Anda sudah mengonfirmasi usia 18+ dan menutup panduan (penyimpanan lokal). Di server kami: jumlah tayangan per video dan laporan konten yang Anda kirim (termasuk kontak bila Anda isi). Kami tidak meminta akun dari pengunjung.</p>
-<h2>Pihak ketiga</h2><p>Situs dihosting di Cloudflare dan memakai Supabase untuk database; keduanya dapat mencatat log teknis seperti alamat IP. Video diputar dari sumber luar yang punya kebijakan privasinya sendiri. Kami menayangkan iklan video dari Hilltop; jaringan iklan dapat memakai cookie serta mencatat alamat IP dan data perangkat untuk menayangkan dan mengukur iklan.</p>
-<h2>Hak Anda</h2><p>Untuk meminta penghapusan data laporan Anda atau bertanya, hubungi <span data-email></span>.</p></main>
-<script type="module">import {layout} from '/js/app.js';layout();</script></body></html>
+<p><small>Pengelola: <span data-operator></span> · Kontak: <span data-email></span></small></p>
+<h2>Data di perangkat Anda (penyimpanan lokal)</h2><p>Kami menyimpan di peramban Anda: penanda konfirmasi usia 18+ (<code>age18</code>), penanda panduan ditutup (<code>welcome</code>), waktu terakhir Anda menonton tiap video agar tayangan tidak dihitung berulang dalam 24 jam (<code>v:&lt;id video&gt;</code>), dan, bila fitur pembatas iklan aktif, waktu iklan terakhir (<code>adlast</code>). Anda dapat menghapusnya lewat pengaturan peramban. Kami tidak meminta akun dari pengunjung.</p>
+<h2>Data di server kami</h2><p><b>Tayangan:</b> jumlah tayangan per video. Untuk mencegah penghitungan ganda, server menyimpan sidik hash (tidak dapat dibalik menjadi alamat IP) per video per hari selama maksimal 2 hari. <b>Laporan konten:</b> alasan, penjelasan, tautan, kontak yang Anda isi (opsional), sidik hash pengirim, dan judul/URL video saat dilaporkan. Laporan disimpan selama diperlukan untuk penanganan dan bukti, lalu dihapus atau dianonimkan setelah maksimal 12 bulan sejak ditutup. Untuk meminta penghapusan atau akses data laporan Anda, hubungi <span data-email></span>.</p>
+<h2>Pihak ketiga yang terlibat</h2><ul>
+<li><b>Cloudflare</b> — hosting, Pages Functions, perlindungan penyalahgunaan, dan (bila aktif) Turnstile pada form laporan; dapat mencatat alamat IP dan data teknis.</li>
+<li><b>Supabase</b> — database dan autentikasi admin; dapat mencatat log teknis termasuk alamat IP.</li>
+<li><b>esm.sh</b> (bila salinan lokal pustaka belum dipasang) — jaringan pengantar kode yang menerima alamat IP Anda saat halaman dimuat.</li>
+<li><b>Hilltop (HilltopAds) dan mitra iklannya</b> — kami menayangkan iklan video sebelum video diputar. Jaringan iklan dan mitra pengukurannya dapat memakai cookie, alamat IP, dan data perangkat untuk menayangkan dan mengukur iklan. Permintaan iklan dikirim ke server iklan saat halaman video dibuka.</li>
+<li><b>Sumber video luar</b> (termasuk Google Drive dan penyedia embed/penyimpanan video lain) — video dan gambar pratinjau dimuat langsung dari server mereka sehingga mereka menerima alamat IP dan data perangkat Anda dan memiliki kebijakan privasi sendiri.</li>
+<li><b>Telegram dan X</b> — hanya tautan keluar di footer; data Anda dikirim ke mereka hanya bila Anda membukanya.</li></ul>
+<h2>Hak Anda</h2><p>Untuk bertanya atau meminta penghapusan data laporan Anda, hubungi <span data-email></span>.</p></main>
+<script type="module" src="/js/page.js"></script></body></html>
