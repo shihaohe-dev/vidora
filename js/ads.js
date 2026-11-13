@@ -1,6 +1,6 @@
 // Iklan video pre-roll (format VAST, Hilltop) untuk pemutar video langsung.
 // Aturan: iklan gagal / lambat / kosong / macet => video konten tetap diputar (iklan tidak pernah menahan konten).
-import { AD_VAST_PRIMARY, AD_FREQ_CAP_MIN } from './config.js';
+import { AD_VAST_PRIMARY, AD_VAST_BACKUP, AD_FREQ_CAP_MIN } from './config.js';
 
 const text = el => (el?.textContent || '').trim();
 const all = (root, tag) => [...root.getElementsByTagName(tag)];
@@ -105,15 +105,23 @@ function playAd(vEl, vast) {
 const capped = () => { const m = +AD_FREQ_CAP_MIN || 0; if (!m) return false; try { return Date.now() - (+localStorage.getItem('adlast') || 0) < m * 60000; } catch { return false; } };
 const markShown = () => { try { localStorage.setItem('adlast', Date.now()); } catch {} };
 
+// Urutan sumber iklan: Hilltop (utama) lalu ExoClick (cadangan). Sumber berikutnya dicoba hanya bila yang sebelumnya kosong/gagal dimuat.
+const SOURCES = [AD_VAST_PRIMARY, AD_VAST_BACKUP].filter(safeUrl);
+async function loadFirst() {
+  for (const url of SOURCES) {
+    const acc = newAcc();
+    try { return await load(url, acc); }
+    catch (e) { fire(acc.err, e.code || 900); console.warn('VAST dilewati:', e.message); }
+  }
+  return null;
+}
+
 // Dipasang pada <video> konten: satu iklan pre-roll sebelum video mulai.
 // Bila iklan kosong/gagal/lambat/macet, video konten tetap diputar.
 export function initPreroll(vEl) {
-  if (!safeUrl(AD_VAST_PRIMARY) || capped()) return;
-  const acc = newAcc();
+  if (!SOURCES.length || capped()) return;
   let state = 'loading', vast = null;
-  const pending = load(AD_VAST_PRIMARY, acc)
-    .then(a => { state = 'ready'; vast = a; return a; })
-    .catch(e => { state = 'failed'; fire(acc.err, e.code || 900); console.warn('VAST dilewati:', e.message); return null; });
+  const pending = loadFirst().then(a => { vast = a; state = a ? 'ready' : 'failed'; return a; });
 
   let locked = false;
   const relock = () => { if (locked) vEl.pause(); };   // pengguna menekan play lagi saat iklan/menunggu: tahan konten

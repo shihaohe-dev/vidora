@@ -86,20 +86,4 @@ export function layout() {
     `Laporan konten ke <span data-email></span>.</p><p>© ${new Date().getFullYear()} ${esc(SITE)}</p></div></footer>`);
   document.querySelectorAll('[data-email]').forEach(el => el.innerHTML = `<a href="mailto:${esc(CONTACT_EMAIL)}">${esc(CONTACT_EMAIL)}</a>`);
   document.querySelectorAll('[data-operator]').forEach(el => el.textContent = OPERATOR_NAME);
-  gate();
-}
-
-function gate() {
-  try { if (localStorage.getItem('age18') === '1') return; } catch {}
-  const d = document.createElement('div');
-  d.className = 'gate'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true');
-  d.innerHTML = `<div class="gate-box"><div class="gate-badge">18+</div><h2>Konten Dewasa</h2>` +
-    `<p>Situs ini berisi video dewasa. Lanjutkan hanya jika Anda berusia minimal 18 tahun dan konten semacam ini boleh diakses di tempat Anda.</p>` +
-    `<button class="btn primary" id="g-yes">Saya 18+ — Masuk</button><a class="btn" href="https://www.google.com">Keluar</a>` +
-    `<p class="small">Dengan masuk Anda menyetujui <a href="/terms">Syarat</a> dan <a href="/privacy">Privasi</a>.</p></div>`;
-  document.body.append(d); document.body.style.overflow = 'hidden';
-  d.querySelector('#g-yes').onclick = () => {
-    try { localStorage.setItem('age18', '1'); } catch {}
-    d.remove(); document.body.style.overflow = '';
-  };
 }
