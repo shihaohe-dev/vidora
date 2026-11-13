@@ -20,7 +20,7 @@ export async function onRequest({ request, env }) {
     if (!UUID_RE.test(id)) return html(page.replace('<!--SEO-->', () => '<meta name="robots" content="noindex">'), 404);
 
     const base = sbUrl(env), key = sbAnon(env);
-    const r = await fetch(`${base}/rest/v1/site_videos?id=eq.${encodeURIComponent(id)}&status=eq.published&select=title,description,thumbnail_url,created_at`,
+    const r = await fetch(`${base}/rest/v1/site_videos?id=eq.${encodeURIComponent(id)}&status=eq.published&select=title,description,thumbnail_url,video_url,source_type,created_at`,
       { headers: { apikey: key, Authorization: `Bearer ${key}` }, signal: AbortSignal.timeout(4000) });
     if (!r.ok) return html(page);                                   // database bermasalah: tampilkan halaman biasa
     const v = (await r.json())[0];
@@ -29,7 +29,8 @@ export async function onRequest({ request, env }) {
     const site = env.SITE_NAME || 'Vidora', canon = `${url.origin}/v/${slugify(v.title)}-${id}`;
     const desc = (v.description || `Tonton ${v.title} di ${site}. Konten dewasa 18+.`).slice(0, 160);
     const ld = !v.thumbnail_url ? '' : JSON.stringify({ '@context': 'https://schema.org', '@type': 'VideoObject', name: v.title, description: desc,
-      thumbnailUrl: [v.thumbnail_url], uploadDate: v.created_at, isFamilyFriendly: false }).replace(/</g, '\\u003c');
+      thumbnailUrl: [v.thumbnail_url], uploadDate: v.created_at, isFamilyFriendly: false,
+      ...(/^https:\/\//i.test(v.video_url || '') ? (v.source_type === 'embed' ? { embedUrl: v.video_url } : { contentUrl: v.video_url }) : {}) }).replace(/</g, '\\u003c');
     const head = `<title>${esc(v.title)} - ${esc(site)}</title><meta name="description" content="${esc(desc)}"><link rel="canonical" href="${esc(canon)}">` +
       `<meta property="og:title" content="${esc(v.title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:type" content="video.other">` +
       (v.thumbnail_url ? `<meta property="og:image" content="${esc(v.thumbnail_url)}">` : '') + (ld ? `<script type="application/ld+json">${ld}</script>` : '');
