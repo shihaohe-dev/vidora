@@ -27,10 +27,8 @@ export const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f
 
 // Hash IP + garam agar IP mentah tidak pernah disimpan.
 export async function visitorHash(request, env) {
-  if (typeof env.HASH_SALT !== 'string' || env.HASH_SALT.length < 32) {
-    throw Object.assign(new Error('HASH_SALT belum dikonfigurasi dengan benar'), { status: 503 });
-  }
-
+  // Tanpa HASH_SALT rahasia, hash IP dapat ditebak ulang: tolak (503) alih-alih memakai garam bawaan yang publik.
+  if (!env.HASH_SALT || env.HASH_SALT.length < 16) throw Object.assign(new Error('HASH_SALT belum diisi'), { status: 503 });
   const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
   const data = new TextEncoder().encode(env.HASH_SALT + '|' + ip);
   const buf = await crypto.subtle.digest('SHA-256', data);
